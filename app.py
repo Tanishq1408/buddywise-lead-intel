@@ -7,6 +7,7 @@ Author: Tanishq Singh
 import streamlit as st
 import time
 import json
+import google.generativeai as genai
 from intelligence import analyse_lead, extract_domain, is_personal_email, is_generic_email
 from buddywise_context import SAMPLE_LEADS, PRIORITY_MATRIX
 
@@ -338,12 +339,10 @@ def render_score_breakdown(breakdown: dict, labels: dict) -> None:
 
 # ── API KEY SETUP ─────────────────────────────────────────────────────────────────
 
-def get_api_key() -> str:
-    """Get API key from secrets or session state."""
-    try:
-        return st.secrets["ANTHROPIC_API_KEY"]
-    except Exception:
-        return st.session_state.get("api_key", "")
+def enrich_lead(name: str, email: str, company: str) -> dict:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    
 
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────────
@@ -355,7 +354,7 @@ with st.sidebar:
     # API Key input if not in secrets
     api_key_from_secrets = ""
     try:
-        api_key_from_secrets = st.secrets["ANTHROPIC_API_KEY"]
+        api_key_from_secrets = st.secrets["GOOGLE_API_KEY"]
     except Exception:
         pass
 
