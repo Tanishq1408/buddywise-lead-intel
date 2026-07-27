@@ -108,10 +108,13 @@ def analyse_lead_claude(api_key, name, email, company=None):
     return _parse(msg.content[0].text.strip())
 
 
+import time
+
 def analyse_lead_gemini(api_key, name, email, company=None):
-    effective_key = api_key or st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    # 1. Always prioritize the manual key pasted into the sidebar UI text box
+    effective_key = api_key if (api_key and api_key.strip()) else st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not effective_key:
-        raise ValueError("Missing Gemini API key. Please configure GEMINI_API_KEY.")
+        raise ValueError("Missing Gemini API key. Please input your key or set GEMINI_API_KEY.")
 
     client = genai.Client(api_key=effective_key)
     
@@ -120,32 +123,36 @@ def analyse_lead_gemini(api_key, name, email, company=None):
 
     candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash"]
     
-    last_error = None
     for model_name in candidate_models:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-            )
-            return _parse(response.text.strip())
-        except APIError as e:
-            last_error = e
-            if "404" in str(e) or "NOT_FOUND" in str(e):
-                continue
-            elif "429" in str(e):
-                st.warning("⚠️ Free API quota limit reached. Please wait 30–60 seconds.")
+        # Retry up to 3 times on 429 rate limit errors
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                )
+                return _parse(response.text.strip())
+            except APIError as e:
+                if "429" in str(e):
+                    if attempt < 2:
+                        # Auto-wait 5s on 1st failure, 10s on 2nd failure
+                        time.sleep(5 * (attempt + 1))
+                        continue
+                    else:
+                        st.warning("⚠️ Free API quota limit reached. Please wait 30 seconds.")
+                        raise e
+                elif "404" in str(e) or "NOT_FOUND" in str(e):
+                    break  # Try next model in list
+                else:
+                    st.error(f"Gemini API Error ({model_name}): {e}")
+                    raise e
+            except Exception as e:
+                if "404" in str(e):
+                    break
                 raise e
-            else:
-                st.error(f"Gemini API Error ({model_name}): {e}")
-                raise e
-        except Exception as e:
-            last_error = e
-            if "404" in str(e):
-                continue
-            raise e
 
-    st.error(f"Gemini API Error: {last_error}")
-    raise last_error
+    st.error("Failed to connect to Gemini API. Please check your key or wait a few seconds.")
+    raise Exception("API Connection Failed")
 
 
 def analyse_lead(api_key, name, email, company=None, provider="claude"):
