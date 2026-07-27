@@ -11,11 +11,17 @@ Key buyers: CSO, VP EHS, COO, Plant Manager, CEO (smaller firms).
 """
 
 PRIORITY_MATRIX = {
-    "FAST_TRACK": {"emoji":"🚀","label":"FAST TRACK","hex_color":"#059669","bg_hex":"#064E3B","action":"Reply within the hour.","sla":"< 1 hour","description":"Exceptional fit. Prioritise immediately."},
-    "PURSUE":      {"emoji":"🎯","label":"PURSUE",     "hex_color":"#3B82F6","bg_hex":"#1E3A5F","action":"Prioritise today.","sla":"< 24 hours","description":"Strong prospect. Move quickly."},
-    "QUALIFY":     {"emoji":"🔍","label":"QUALIFY",    "hex_color":"#D97706","bg_hex":"#451A03","action":"Gather more info.","sla":"< 48 hours","description":"Needs more qualification."},
-    "NURTURE":     {"emoji":"🌱","label":"NURTURE",    "hex_color":"#F97316","bg_hex":"#431407","action":"Keep the relationship warm.","sla":"< 1 week","description":"Good contact, weak company."},
-    "DEPRIORITISE":{"emoji":"📭","label":"DEPRIORITISE","hex_color":"#6B7280","bg_hex":"#1F2937","action":"Acknowledge and move on.","sla":"Best effort","description":"Low fit on both dimensions."},
+    "FAST_TRACK":  {"emoji":"🚀","label":"FAST TRACK",  "hex_color":"#059669","bg_hex":"#064E3B","action":"Reply within the hour.","description":"Decision maker at a perfect-fit company."},
+    "PURSUE":      {"emoji":"🎯","label":"PURSUE",      "hex_color":"#3B82F6","bg_hex":"#1E3A5F","action":"Worth pursuing.",         "description":"Good fit. Engage before a competitor does."},
+    "NURTURE":     {"emoji":"🌱","label":"NURTURE",     "hex_color":"#F97316","bg_hex":"#431407","action":"Keep warm.",              "description":"Good contact, weak company fit."},
+    "DEPRIORITISE":{"emoji":"📭","label":"DEPRIORITISE","hex_color":"#6B7280","bg_hex":"#1F2937","action":"Move on.",                "description":"Low fit on both dimensions."},
+}
+
+
+PERSON_TIERS = {
+    "DECISION_MAKER": {"label":"Decision Maker","color":"#059669","bg":"#064E3B","description":"This person selects and recommends safety tools. Engage directly."},
+    "INFLUENTIAL":    {"label":"Influential",    "color":"#3B82F6","bg":"#1E3A5F","description":"Can open doors and approve budget but rarely initiates. Find the operational buyer."},
+    "CONNECTOR":      {"label":"Connector",      "color":"#D97706","bg":"#451A03","description":"Can route you to the right person. Worth a polite, brief reply."},
 }
 
 PERSONAL_EMAIL_DOMAINS = {
@@ -52,7 +58,7 @@ SHOWCASE_LEADS = [
     {"name":"Sundar Pichai",        "email":"sundar.pichai@google.com",      "company":"Google",        "tag":"💻 Tech/Software","expected":"📭 DEPRIORITISE"},
     {"name":"Russ Weiner",          "email":"russ.weiner@dominos.com",       "company":"Domino's Pizza","tag":"🍕 Food Service", "expected":"📭 DEPRIORITISE"},
     # Personal email edge case
-    {"name":"Unknown Contact",      "email":"unknown.person@gmail.com",      "company":"",              "tag":"📧 Personal Email","expected":"🔍 QUALIFY"},
+    {"name":"Unknown Contact",      "email":"unknown.person@gmail.com",      "company":"",              "tag":"📧 Personal Email","expected":"🔍 PURSUE"},
 ]
 
 # All leads combined for sidebar
