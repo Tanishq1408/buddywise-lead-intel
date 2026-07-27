@@ -95,12 +95,11 @@ def analyse_lead_claude(api_key, name, email, company=None):
 
 
 def analyse_lead_gemini(api_key, name, email, company=None):
-    # Resolve API Key
+    # Determine key from parameter, Streamlit secrets, or environment variable
     effective_key = api_key or st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not effective_key:
-        raise ValueError("Gemini API key is missing.")
+        raise ValueError("Missing Gemini API key. Please check your secrets or input parameters.")
 
-    # Initialize modern Google GenAI Client
     client = genai.Client(api_key=effective_key)
     prompt = _system_prompt() + "\n\n" + _user_prompt(name, email, company)
 
@@ -112,10 +111,10 @@ def analyse_lead_gemini(api_key, name, email, company=None):
         return _parse(response.text.strip())
     except APIError as e:
         if "429" in str(e):
-            st.error("⚠️ Free API quota reached. Please wait 30–60 seconds before analyzing another lead.")
+            st.warning("⚠️ Free API quota limit reached. Please wait 30–60 seconds before submitting another request.")
             raise e
         else:
-            st.error(f"API Error: {e}")
+            st.error(f"Gemini API Error: {e}")
             raise e
 
 
