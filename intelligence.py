@@ -11,6 +11,20 @@ from google.genai.errors import APIError
 from buddywise_context import BUDDYWISE_DESCRIPTION
 
 
+def sanitize_utf8(text: str) -> str:
+    """Replaces non-ASCII characters with safe ASCII equivalents."""
+    if not isinstance(text, str):
+        return text
+    text = (
+        text.replace("—", "-")
+        .replace("–", "-")
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("’", "'")
+    )
+    return text.encode("ascii", "ignore").decode("ascii")
+
+
 def extract_domain(email):
     return email.strip().split("@")[1].lower() if "@" in email else email.strip()
 
@@ -32,28 +46,28 @@ def is_generic_email(email):
 
 
 def _system_prompt():
-    return f"""You are a sales intelligence analyst for Buddywise — AI-powered workplace safety.
+    return f"""You are a sales intelligence analyst for Buddywise - AI-powered workplace safety.
 
 {BUDDYWISE_DESCRIPTION}
 
 SCORING RULES:
 COMPANY FIT (0-100): Industry(0-40) + Size(0-25) + Geography(0-20) + Physical Risk(0-15)
   Industry tiers: Chemical/Mining/Heavy Mfg/Oil&Gas/Pulp&Paper(36-40) | Food Mfg/Pharma Mfg/Construction/Logistics(26-35) | Healthcare/General Logistics(16-25) | Restaurants/Retail/Media(6-15) | Software/Finance/Consulting(0-5)
-  Size: 50k+→25, 10-50k→22, 1-10k→18, 200-1k→12, 50-200→5, <50→0
-  Geography: DACH→20, Nordics→19, UK/Benelux→16, Core EU→14, Rest EU→11, N.America→8, Other→4
-  Physical risk: Multiple hazardous sites→15, Factories/plants→12, Mixed→8, Office-only→2
+  Size: 50k+->25, 10-50k->22, 1-10k->18, 200-1k->12, 50-200->5, <50->0
+  Geography: DACH->20, Nordics->19, UK/Benelux->16, Core EU->14, Rest EU->11, N.America->8, Other->4
+  Physical risk: Multiple hazardous sites->15, Factories/plants->12, Mixed->8, Office-only->2
 
 PERSON SCORE (0-100): Authority(0-50) + Seniority(0-30) + Signal(0-20)
-  CSO/VP EHS/Head Safety→50, COO/VP Ops→47, Plant Manager→44, CEO→42, CFO→35
-  Safety Manager→30, Ops Manager→28, HR Director→22, Procurement→15, IT→12, Marketing→5
-  C-Suite→30, VP→25, Director→20, Sr Mgr→15, Mgr→10
-  C-Suite inbound→20, Procurement inbound→18, Director inbound→14, Cold→8
+  CSO/VP EHS/Head Safety->50, COO/VP Ops->47, Plant Manager->44, CEO->42, CFO->35
+  Safety Manager->30, Ops Manager->28, HR Director->22, Procurement->15, IT->12, Marketing->5
+  C-Suite->30, VP->25, Director->20, Sr Mgr->15, Mgr->10
+  C-Suite inbound->20, Procurement inbound->18, Director inbound->14, Cold->8
 
 BUYING SIGNALS: CRITICAL(+25): new leader <18mo, recent accident, new site/expansion, safety hiring, procurement contact
 HIGH(+15): ESG report with safety targets, peer accident, regulatory audit, M&A/restructuring, Industry 4.0
 MEDIUM(+8): rapid growth, cost reduction program, Atlas Copco/Ramudden connection
 
-PRIORITY: FAST_TRACK→Company≥80 AND Person≥70 | PURSUE→Company≥65 AND Person≥50 | QUALIFY→Company≥40 | NURTURE→Company<40 AND Person≥70 | DEPRIORITISE→both low
+PRIORITY: FAST_TRACK->Company>=80 AND Person>=70 | PURSUE->Company>=65 AND Person>=50 | QUALIFY->Company>=40 | NURTURE->Company<40 AND Person>=70 | DEPRIORITISE->both low
 
 Return ONLY valid JSON. No markdown, no explanation."""
 
@@ -95,18 +109,15 @@ def analyse_lead_claude(api_key, name, email, company=None):
 
 
 def analyse_lead_gemini(api_key, name, email, company=None):
-    # Retrieve key from parameter, secrets, or environment
     effective_key = api_key or st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not effective_key:
         raise ValueError("Missing Gemini API key. Please configure GEMINI_API_KEY.")
 
     client = genai.Client(api_key=effective_key)
     
-    # Construct and sanitize prompt
     raw_prompt = _system_prompt() + "\n\n" + _user_prompt(name, email, company)
     prompt = sanitize_utf8(raw_prompt)
 
-    # List of models to attempt in sequence (newest to standard fallbacks)
     candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash"]
     
     last_error = None
@@ -119,7 +130,6 @@ def analyse_lead_gemini(api_key, name, email, company=None):
             return _parse(response.text.strip())
         except APIError as e:
             last_error = e
-            # If 404 NOT_FOUND, try the next model in the candidate list
             if "404" in str(e) or "NOT_FOUND" in str(e):
                 continue
             elif "429" in str(e):
@@ -134,7 +144,6 @@ def analyse_lead_gemini(api_key, name, email, company=None):
                 continue
             raise e
 
-    # If all candidate models failed
     st.error(f"Gemini API Error: {last_error}")
     raise last_error
 
