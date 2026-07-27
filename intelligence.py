@@ -95,27 +95,48 @@ def analyse_lead_claude(api_key, name, email, company=None):
 
 
 def analyse_lead_gemini(api_key, name, email, company=None):
-    # Determine key from parameter, Streamlit secrets, or environment variable
+    # Retrieve key from parameter, secrets, or environment
     effective_key = api_key or st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not effective_key:
-        raise ValueError("Missing Gemini API key. Please check your secrets or input parameters.")
+        raise ValueError("Missing Gemini API key. Please configure GEMINI_API_KEY.")
 
     client = genai.Client(api_key=effective_key)
-    prompt = _system_prompt() + "\n\n" + _user_prompt(name, email, company)
+    
+    # Construct and sanitize prompt
+    raw_prompt = _system_prompt() + "\n\n" + _user_prompt(name, email, company)
+    prompt = sanitize_utf8(raw_prompt)
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-        )
-        return _parse(response.text.strip())
-    except APIError as e:
-        if "429" in str(e):
-            st.warning("⚠️ Free API quota limit reached. Please wait 30–60 seconds before submitting another request.")
+    # List of models to attempt in sequence (newest to standard fallbacks)
+    candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            return _parse(response.text.strip())
+        except APIError as e:
+            last_error = e
+            # If 404 NOT_FOUND, try the next model in the candidate list
+            if "404" in str(e) or "NOT_FOUND" in str(e):
+                continue
+            elif "429" in str(e):
+                st.warning("⚠️ Free API quota limit reached. Please wait 30–60 seconds.")
+                raise e
+            else:
+                st.error(f"Gemini API Error ({model_name}): {e}")
+                raise e
+        except Exception as e:
+            last_error = e
+            if "404" in str(e):
+                continue
             raise e
-        else:
-            st.error(f"Gemini API Error: {e}")
-            raise e
+
+    # If all candidate models failed
+    st.error(f"Gemini API Error: {last_error}")
+    raise last_error
 
 
 def analyse_lead(api_key, name, email, company=None, provider="claude"):
