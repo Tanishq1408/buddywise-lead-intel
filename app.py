@@ -2,7 +2,7 @@
 
 import streamlit as st, time
 from intelligence import analyse_lead, extract_domain, is_personal_email, is_generic_email
-from buddywise_context import CASE_STUDY_LEADS, SHOWCASE_LEADS, PRIORITY_MATRIX
+from buddywise_context import CASE_STUDY_LEADS, SHOWCASE_LEADS, SAMPLE_LEADS, PRIORITY_MATRIX
 
 st.set_page_config(page_title="Buddywise Lead Intel", page_icon="🦺", layout="wide")
 
@@ -72,25 +72,21 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Case study leads
-    st.markdown("**📋 Case Study Leads**")
-    for lead in CASE_STUDY_LEADS:
-        label = f"{lead['tag']}  {lead['name'].split()[0]} {lead['name'].split()[-1]}  ·  {lead['company']}"
-        if st.button(label, key=f"cs_{lead['company']}", use_container_width=True):
-            st.session_state["pf_name"] = lead["name"]
-            st.session_state["pf_email"] = lead["email"]
-            st.session_state["pf_company"] = lead["company"]
-            st.rerun()
+    # Lead selector — reliable selectbox approach
+    st.markdown("**📋 Select a Lead**")
+    all_options = ["— type manually —"] + [
+        f"{l['name']} · {l['company']}" for l in SAMPLE_LEADS
+    ]
+    chosen = st.selectbox("Quick-fill", all_options, key="lead_selector", label_visibility="collapsed")
 
-    st.markdown("**🌍 Diverse Showcase**")
-    st.caption("Different industries & expected results")
-    for lead in SHOWCASE_LEADS:
-        label = f"{lead['tag']}  {lead['name'].split()[0]}  ·  {lead.get('expected','')}"
-        if st.button(label, key=f"sc_{lead['name']}", use_container_width=True):
-            st.session_state["pf_name"] = lead["name"]
-            st.session_state["pf_email"] = lead["email"]
-            st.session_state["pf_company"] = lead.get("company","")
-            st.rerun()
+    # Copy-paste reference table
+    with st.expander("📋 Copy-paste table", expanded=False):
+        import pandas as pd
+        df = pd.DataFrame([
+            {"Name": l["name"], "Email": l["email"], "Company": l["company"]}
+            for l in SAMPLE_LEADS
+        ])
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.markdown("---")
     st.caption("Built by Tanishq Singh\nMSc PM & Data Science · HTW Berlin\nBuddywise Case Study · July 2025")
@@ -106,14 +102,19 @@ st.markdown("""
 </div>""", unsafe_allow_html=True)
 
 # ── INPUT FORM ────────────────────────────────────────────────────────────────
-pf_name    = st.session_state.pop("pf_name", "")
-pf_email   = st.session_state.pop("pf_email", "")
-pf_company = st.session_state.pop("pf_company", "")
+# Resolve selected lead
+_selected_lead = {}
+chosen_key = st.session_state.get("lead_selector", "— type manually —")
+if chosen_key and chosen_key != "— type manually —":
+    for _l in SAMPLE_LEADS:
+        if f"{_l['name']} · {_l['company']}" == chosen_key:
+            _selected_lead = _l
+            break
 
 c1, c2, c3, c4 = st.columns([2.5, 2.5, 2, 1])
-with c1: name    = st.text_input("Full Name",         value=pf_name,    placeholder="e.g. Markus Kamieth")
-with c2: email   = st.text_input("Email Address",     value=pf_email,   placeholder="e.g. markus.kamieth@basf.com")
-with c3: company = st.text_input("Company (optional)",value=pf_company, placeholder="Auto-detected from email")
+with c1: name    = st.text_input("Full Name",          value=_selected_lead.get("name",""),    placeholder="e.g. Markus Kamieth")
+with c2: email   = st.text_input("Email Address",      value=_selected_lead.get("email",""),   placeholder="e.g. markus.kamieth@basf.com")
+with c3: company = st.text_input("Company (optional)", value=_selected_lead.get("company",""), placeholder="Auto-detected from email")
 with c4:
     st.markdown("<div style='margin-top:28px'>", unsafe_allow_html=True)
     analyse_btn = st.button("🔍 Analyse", use_container_width=True)
