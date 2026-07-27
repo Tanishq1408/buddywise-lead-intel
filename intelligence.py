@@ -42,9 +42,13 @@ Return ONLY this JSON:
 def _parse(text):
     if "```" in text:
         text = re.sub(r"```(?:json)?\n?","",text).replace("```","").strip()
-    s,e = text.find("{"), text.rfind("}")+1
-    if s!=-1 and e>s: text=text[s:e]
-    return json.loads(text)
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("No JSON found in response")
+    # raw_decode stops exactly where JSON ends, ignores trailing text
+    decoder = json.JSONDecoder()
+    obj, _ = decoder.raw_decode(text, start)
+    return obj
 
 def analyse_lead_claude(api_key, name, email, company=None):
     import anthropic
