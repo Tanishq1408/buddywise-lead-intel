@@ -70,7 +70,7 @@ def analyse_lead_claude(api_key, name, email, company=None):
     import anthropic
     client = anthropic.Anthropic(api_key=api_key)
     msg = client.messages.create(
-        model="claude-sonnet-4-6", max_tokens=2500, temperature=0,
+        model="claude-sonnet-4-6", max_tokens=2500,
         system=_system_prompt(),
         messages=[{"role": "user", "content": _user_prompt(name, email, company)}]
     )
