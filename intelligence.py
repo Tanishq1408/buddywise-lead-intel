@@ -77,11 +77,9 @@ def analyse_lead_claude(api_key, name, email, company=None):
     return _parse(msg.content[0].text.strip())
 
 def analyse_lead_gemini(api_key, name, email, company=None):
-    import google.generativeai as genai
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    prompt = _system_prompt() + "\n\n" + _user_prompt(name, email, company)
-    response = model.generate_content(prompt)
+    from google import genai
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     return _parse(response.text.strip())
 
 def analyse_lead(api_key, name, email, company=None, provider="claude"):
